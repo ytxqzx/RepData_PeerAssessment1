@@ -1,0 +1,180 @@
+Course Projec 1
+========================================================
+## Introduction
+It is now possible to collect a large amount of data about personal movement using activity monitoring devices such as a [Fitbit](http://www.fitbit.com/), [Nike Fuelband](http://www.nike.com/us/en_us/c/nikeplus-fuelband), or [Jawbone Up](https://jawbone.com/up). These type of devices are part of the "quantified self" movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+## Data
+The data for this assignment can be downloaded from the course web site:
+
+- **Dataset**: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
+The variables included in this dataset are:
+
+- **steps**: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+
+- **date**: The date on which the measurement was taken in YYYY-MM-DD format
+
+- **interval**: Identifier for the 5-minute interval in which measurement was taken
+
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+## Assignment
+This assignment will be described in multiple parts. You will need to write a report that answers the questions detailed below. Ultimately, you will need to complete the entire assignment in a single R markdown document that can be processed by knitr and be transformed into an HTML file.
+
+Throughout your report make sure you always include the code that you used to generate the output you present. When writing code chunks in the R markdown document, always use echo = TRUE so that someone else will be able to read the code. This assignment will be evaluated via peer assessment so it is essential that your peer evaluators be able to review the code for your analysis.
+
+For the plotting aspects of this assignment, feel free to use any plotting system in R (i.e., base, lattice, ggplot2)
+
+Fork/clone the [GitHub repository created for this assignment](https://github.com/rdpeng/RepData_PeerAssessment1). You will submit this assignment by pushing your completed files into your forked repository on GitHub. The assignment submission will consist of the URL to your GitHub repository and the SHA-1 commit ID for your repository state.
+
+NOTE: The GitHub repository also contains the dataset for the assignment so you do not have to download the data separately.
+### Loading and preprocessing the data
+1. Load the data
+
+```{r}
+setwd("E:/xi/CourseRa/Reproducible Data/course project 1")
+data <- read.csv("activity.csv", header = T, stringsAsFactors = F)
+```
+### What is mean total number of steps taken per day?
+
+* Calculate the total number of steps taken per day
+```{r, echo=TRUE}
+steps_total <- t(sapply(split(data$steps, data$date), sum, na.rm = TRUE))
+steps_total[steps_total == 0] = NA
+```
+
+1. Make a histogram of the total number of steps taken each day:
+
+```{r}
+hist(steps_total, breaks = 1000* (0 : 25), xlab = "Total Steps/Day", col = "red", main = NULL)
+```
+
+2. Calculate and report the mean and median total number of steps taken per day
+
+```{r, echo = TRUE}
+mean <- mean(steps_total, na.rm = T)
+mean
+median <- median(steps_total, na.rm = T)
+median
+```
+The mean and median are **`r mean`** and **`r median`**, respectively
+### What is the average daily activity pattern?
+
+1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+
+```{r}
+interval <- seq.POSIXt(as.POSIXct("2012-10-1 00:00:00"), 
+                       as.POSIXct("2012-10-1 23:55:00"), by = "5 min")
+Avg_step <- sapply(split(data$steps, data$interval), mean, na.rm = T)
+average <- data.frame(interval, Avg_step)
+
+with(average, plot(interval, Avg_step, type = "l", xlab = "5-minute interval", 
+                   ylab = "Average number of steps", col = "blue"))
+
+
+```
+
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r}
+max <- data$interval[which(Avg_step == max(Avg_step))]
+max
+```
+The answer is `r max`.
+### Imputing missing values
+
+Note that there are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+
+1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+   
+```{r}
+nNAs <- sum(is.na(data$steps))
+nNAs
+```
+The total number of rows with NAS is `r nNAs`.
+
+2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+The strategy using here is to replace the NAs with the mean.
+
+```{r}
+steps_mean <- t(sapply(split(data$steps, data$date), mean, na.rm = TRUE))
+steps_mean[is.na(steps_mean)] <- 0
+
+```
+
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r}
+
+index <- which(is.na(data$steps))
+new <- data
+for (i in 1:length(index)){
+      if (index[i] %% 288 == 0 )
+          new$steps[index[i]] = steps_mean[index[i] %/% 288]
+      else 
+         new$steps[index[i]] = steps_mean[index[i] %/% 288 + 1]      
+}
+```
+
+
+4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+```{r}
+steps_total_new <- t(sapply(split(new$steps, new$date), sum))
+hist(steps_total_new, breaks = 1000* (0 : 25), xlab = "Total Steps/Day", col = "red", main = NULL)
+
+```
+
+
+```{r}
+mean_new <- mean(steps_total_new)
+mean_new
+median_new <- median(steps_total_new)
+median_new
+```
+
+The mean and median for the new data is **`r mean_new`** and **`r median_new`**, repectively. 
+Yes, this will affect the mean and median total number of steps taken per day, since the mean and median of the original data removed NAs during the calculation. In the new the data, since for those days with total steps taken per days from the NAs to **0**, the new mean and median will become smaller.
+
+### Are there differences in activity patterns between weekdays and weekends?
+
+For this part the weekdays() function may be of some help here. Use the dataset with the filled-in missing values for this part.
+
+1. Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+
+```{r}
+label <- factor(c("weekdays", "weekends"))
+new$date <- as.Date(new$date)
+new["label"] <- NA
+for (i in 1:nrow(new)){
+      if (weekdays(new$date[i]) == "Saturday" | 
+                weekdays(new$date[i]) == "Sunday")
+            new$label[i] <- 1
+      else
+            new$label[i] <- 2
+}
+new$label <- factor(new$label,labels =c( "weekends", "weekdays"))
+
+```
+
+2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+
+```{r}
+new_weekends <- split(new, new$label)[[1]]
+new_weekdays <- split(new, new$label)[[2]]
+ASE <- data.frame(interval, Avg_step = sapply(split(new_weekends$steps, new_weekends$interval), mean)) #ASE: Avg_steps_weekends
+
+ASD <- data.frame(interval, Avg_step = sapply(split(new_weekdays$steps, new_weekdays$interval), mean)) #ASD:Avg_steps_weekdays
+par(mfrow = c(2,1))
+
+plot(ASE$interval, ASE$ Avg_step, type = "l", xlab = "5-minute interval", 
+                   ylab = "Average number of steps", col = "blue", main = "Weekends")
+plot(ASD$interval, ASD$ Avg_step, type = "l", xlab = "5-minute interval", 
+                   ylab = "Average number of steps", col = "red", main = "Weekdays")
+
+```
+
+
